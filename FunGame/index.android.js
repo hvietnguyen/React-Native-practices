@@ -18,48 +18,89 @@ import {
 export default class FunGame extends Component {
   constructor(props){
     super(props);
-    this.state={refreshing:false};
+    // State
+    this.state={
+      rowBaseNumber: Math.floor(Math.random() * 4),
+      totalScore:0};
+    //Refresh display mole in row base
+    setInterval(()=>{
+      this.setState(getRowBaseNumber=>{
+        //random number from 1-3
+        let randomNumber = Math.floor(Math.random() * 4);
+        return {rowBaseNumber: randomNumber};
+      });
+    },2000);
+    // Update score
+    setInterval(()=>{
+        let total = this.refs.rb0.state.score + this.refs.rb1.state.score + this.refs.rb2.state.score + this.refs.rb3.state.score;
+        this.setState({totalScore:total});
+    },1000);
+  }
+
+  // Render row base
+  renderRowBase=()=>{
+    rowBases=[];
+    for(let i=0; i<4; i++){
+      let selected = i==this.state.rowBaseNumber;
+      rowBases.push(
+        <RowBase
+          ref={'rb'+i}
+          key={i}
+          id={i+1}
+          selected={selected}
+        />
+      );
+    }
+    return rowBases;
   }
 
   render() {
-    let imgPath=require('./background.jpg');
+    let imgPathGround=require('./background2.jpg');
     return (
-      <Image source={imgPath} style={styles.container}>
-        <RowBase id='1' />
-        <RowBase id='2'/>
-        <RowBase id='3'/>
-        <RowBase id='4'/>
-        <RowBase id='5'/>
+      <Image source={imgPathGround} style={styles.container}>
+        <View style={styles.top}>
+          <Text style={styles.topScore}>Score: {this.state.totalScore}</Text>
+        </View>
+        {this.renderRowBase()}
       </Image>
     );
   }
 }
 
 /*
+* Component
 * Array of bases in horizontal
 */
 class RowBase extends Component{
   constructor(props){
     super(props);
-    this.state = {numberBase: Math.floor(Math.random() * 5) + 1};
-    this.props.id='';
-
-    //Refresh bases
-    setInterval(()=>{
-      this.setState(getNumberBase=>{
-        // random number from 1-5
-        let randomNumber = Math.floor(Math.random() * 5) + 1;
-        return {numberBase: randomNumber};
-      });
-    },2000);
+    // Properties
+    this.props.selected = true;
+    //State
+    this.state={score:0};
   }
-  // Arrow function:
+
+  updateScore = (point)=>{
+    this.setState({score:this.state.score + point});
+  }
+
   // render multiple bases regarding to randomNumber
   renderBase = () => {
-    const bases=[];
-    for(let i=0; i<this.state.numberBase; i++){
+    bases=[];
+    // random number from 0-4
+    let randomBase = Math.floor(Math.random() * 4);
+    for(let i=0; i<4; i++){
+      let loadingMole = i==randomBase && this.props.selected ? 'true' : 'false';
+      let source = loadingMole=='true' ? require('./mole.png') : require('./mole_hole2.png');
       bases.push(
-        <Base key={i} id={this.props.id + (i+1)}/>
+        <Base
+          key={i}
+          id={this.props.id.toString()+(i+1)}
+          imgSource={source}
+          isPressOn='false'
+          isLoading={loadingMole}
+          updateRowBaseScore={this.updateScore.bind(this)}
+        />
       );
     }
     return bases;
@@ -75,16 +116,42 @@ class RowBase extends Component{
 }
 
 /*
+* Component:
 * Base of Display
 */
 class Base extends Component{
   constructor(props){
     super(props);
-    this.props.id='';
+    this.state={
+      id:0,
+      isPressOn:'false',
+      isLoading:'false',
+      imgSource:null};
   }
 
-  onPress(){
-    Alert.alert('You press me: '+this.props.id);
+  // Events
+  componentWillMount(){
+    this.setState({
+      id:this.props.id,
+      isPressOn:this.props.isPressOn,
+      isLoading: this.props.isLoading,
+      imgSource:this.props.imgSource});
+  }
+  componentWillReceiveProps(nextProps){
+    this.setState({
+      id:nextProps.id,
+      isPressOn:nextProps.isPressOn,
+      isLoading: nextProps.isLoading,
+      imgSource:nextProps.imgSource});
+  }
+
+  onPress=()=>{
+    this.setState({isPressOn:'true'});
+    if(this.state.isLoading=='true'){
+        this.props.updateRowBaseScore(10);
+    }else{
+        this.props.updateRowBaseScore(-2);
+    }
   }
 
   render(){
@@ -92,7 +159,7 @@ class Base extends Component{
       // <View style={styles.base}></View>
       <TouchableOpacity onPress={this.onPress.bind(this)}>
         <View style={styles.base}>
-          {/* <Text style={styles.buttonText}>Refresh</Text> */}
+          <Image source={this.state.imgSource} style={{width:100,height:78}}></Image>
         </View>
       </TouchableOpacity>
     );
@@ -100,6 +167,12 @@ class Base extends Component{
 }
 
 const styles = StyleSheet.create({
+  top:{
+    flexDirection:'row',
+    justifyContent:'space-around',
+    backgroundColor:'#ffffff',
+    opacity:0.4
+  },
   container: {
     flex: 1,
     flexDirection:'column',
@@ -108,10 +181,9 @@ const styles = StyleSheet.create({
     height:null
   },
   base:{
-    backgroundColor:'white',
-    width:50,
-    height:50,
-    opacity:0.5
+    width:100,
+    height:100,
+    borderRadius:40,
   },
   rowBase:{
     flexDirection:'row',
@@ -128,10 +200,12 @@ const styles = StyleSheet.create({
     padding:20,
     color:'white'
   },
-  welcome: {
-    fontSize: 20,
+  topScore: {
+    color:'#333333',
+    fontSize: 18,
+    fontWeight:'bold',
     textAlign: 'center',
-    margin: 10,
+    margin: 5,
   },
   instructions: {
     textAlign: 'center',
