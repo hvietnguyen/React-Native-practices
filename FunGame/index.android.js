@@ -148,9 +148,9 @@ class Base extends Component{
   onPress=()=>{
     this.setState({isPressOn:'true'});
     if(this.state.isLoading=='true'){
-        this.props.updateRowBaseScore(10);
+        this.props.updateRowBaseScore(1);
     }else{
-        this.props.updateRowBaseScore(-2);
+        this.props.updateRowBaseScore(-1);
     }
   }
 
