@@ -1,0 +1,3 @@
+rootProject.name = 'Touchables'
+
+include ':app'
