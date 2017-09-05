@@ -6,6 +6,8 @@ import {
   Text,
   TextInput,
   View,
+  ScrollView,
+  KeyboardAvoidingView,
   Button,
   Alert,
   Image,
@@ -45,7 +47,7 @@ class Login extends React.Component{
 
   render(){
     return(
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.container}>
         <View style={styles.caption}>
           <Text style={styles.captionText}>Login</Text>
         </View>
@@ -72,7 +74,7 @@ class Login extends React.Component{
             </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 }
@@ -91,13 +93,6 @@ class Home extends React.Component{
     title:'Home'
   });
 
-  // componentDidMount(){
-  //   console.log(this.props.navigation.state);
-  //   if(this.props.navigation.state!=undefined){
-  //     this.props.navigation.navigate('Login');
-  //   }
-  // }
-
   render(){
     const {params} = this.props.navigation.state;
     return(
@@ -110,65 +105,271 @@ class Home extends React.Component{
 }
 
 //----------------End Home-------------------------------------------------
-
+// Movies Screen
 class Movies extends React.Component{
   constructor(props){
     super(props);
-    this.state = {totalPage:0,movies:null};
-    this._onPress = this._onPress.bind(this);
-    this.uriApi = "https://api.themoviedb.org/3/discover/movie?api_key=984ffdb6bbfba05afdce139853bf2a1c&language=en-US&sort_by=popularity.desc&page=1";
+    this.state = {
+      totalPage:0,
+      page:1,
+      movies:null
+    };
+    this.onPress = this.onPress.bind(this);
+    this.urlApi = "https://api.themoviedb.org/3/discover/movie?api_key=984ffdb6bbfba05afdce139853bf2a1c";
   }
 
-  componentDidMount(){
-    return fetch(this.uriApi)
+  getMoviesByPage=(page)=>{
+    fetch(this.urlApi+"&language=en-US&sort_by=popularity.desc&page="+page)
       .then((response)=>response.json())
       .then((responseJson)=>{
-        let data = responseJson.results;
-        console.log(data);
+        console.log(responseJson.results);
         //set states
         this.setState({
           totalPages:responseJson.total_pages,
-          movies:data
+          page:responseJson.page,
+          movies:responseJson.results,
         });
       }).catch((error)=>{
         console.error(error);
       });
   }
 
+  componentDidMount(){
+    this.getMoviesByPage(this.state.page);
+  }
+
   static navigationOptions={
     title:'Movies'
   }
 
-  _onPress=(item)=>{
-    Alert.alert("Overview: "+item.overview);
+  onPress=(item)=>{
+    console.log("Movie: "+item.title);
+    this.props.navigation.navigate('MovieDetails', item);
   }
+
+  moveBackward=(page)=>{
+    console.log('Next Page: '+page);
+    this.getMoviesByPage(page);
+  }
+
+  moveForward=(page)=>{
+    console.log('Next Page: '+page);
+    this.getMoviesByPage(page);
+  }
+
+  renderItem=({item})=>(
+    <ListItem
+      id={item.id}
+      onPress={()=>this.onPress(item)}
+      title={'Title: ' + item.title}
+      release_date={'Release: '+item.release_date}
+      overview={'Overview: '+item.overview}
+    />
+  );
+
+  renderHeader=()=>(
+    <Text style={styles.label}>List of Movies</Text>
+  );
 
   render(){
     return(
       <View style={styles.container}>
-        <Text style={styles.label}>List of Movies</Text>
         <FlatList
           data={this.state.movies}
-          renderItem={
-            ({item})=>
-            <TouchableOpacity onPress={()=>this._onPress(item)}>
-              <View style={{flexDirection:'row'}}>
-                <Image source={require('./img/movie.png')} style={{width:50,height:50}}></Image>
-                <View style={{flexDirection:'column'}}>
-                  <Text style={styles.title}>Title: {item.title}</Text>
-                  <Text style={styles.text}>Release: {item.release_date}</Text>
-                </View>
-              </View>
-              <Text style={styles.overview} numberOfLines={4}>Overview: {item.overview}</Text>
-            </TouchableOpacity>
-          }
+          renderItem={this.renderItem}
+          keyExtractor={item=>item.id}
+          ListHeaderComponent={this.renderHeader}
+        />
+        <Paging
+          page={this.state.page}
+          totalPages={this.state.totalPages}
+          moveBackward={this.moveBackward.bind(this)}
+          moveForward={this.moveForward.bind(this)}
         />
       </View>
     );
   }
 }
 
+// List Item
+class ListItem extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return(
+      <TouchableOpacity onPress={this.props.onPress}>
+        <View style={{flexDirection:'row'}}>
+          <Image source={require('./img/movie.png')} style={{width:50,height:50}}></Image>
+          <View style={{flexDirection:'column'}}>
+            <Text style={styles.title}>{this.props.title}</Text>
+            <Text style={styles.subTitle}>{this.props.release_date}</Text>
+          </View>
+        </View>
+        <Text style={styles.overview} numberOfLines={4}>{this.props.overview}</Text>
+      </TouchableOpacity>
+    );
+  }
+}
 //-----------------End Movies------------------------------------------------
+
+// Movie Details
+
+class MovieDetails extends React.Component{
+
+  constructor(props){
+    super(props);
+    this.state={
+      id:0,
+      collection:null,
+      genres:null,
+      homepage:'',
+      companies:null,
+      countries:null,
+      status:'',
+      vote_average:0,
+      videos:null
+    };
+    this.urlApi='https://api.themoviedb.org/3/movie/';
+  }
+
+  getMovieById=(id)=>{
+    console.log('Movie: '+id);
+    fetch(this.urlApi + id + '?api_key=984ffdb6bbfba05afdce139853bf2a1c&append_to_response=videos,images')
+      .then((response)=>response.json())
+      .then((responseJson)=>{
+        console.log(responseJson);
+        //set states
+        this.setState({
+          id:responseJson.id,
+          collection:responseJson.belongs_to_collection,
+          genres:responseJson.genres,
+          homepage:responseJson.homepage,
+          companies:responseJson.production_companies,
+          countries:responseJson.production_countries,
+          status:responseJson.status,
+          vote_average:responseJson.vote_average,
+          videos:responseJson.videos.results
+        });
+      }).catch((error)=>{
+        console.error(error);
+      });
+  }
+
+  movieId=0;
+
+  componentDidMount=()=>{
+    this.getMovieById(movieId);
+  }
+
+  static navigationOptions=({navigation})=>{
+    console.log('Get movie Id');
+    movieId = navigation.state.params.id;
+    return {title:'Movie Details'};
+  };
+
+  getNames=(arr)=>{
+    let value='';
+    if(arr!=null){
+      value=arr[0].name;
+      for(var i=1; i<arr.length; i++){
+        value+=', '+arr[i].name;
+      }
+    }
+    return value;
+  }
+
+  render(){
+    const {params} = this.props.navigation.state;
+    let url = {uri:'https://image.tmdb.org/t/p/w500'+params.poster_path};
+    return(
+      <ScrollView style={styles.container}>
+          <Text style={styles.label}>{params.title}</Text>
+          <View style={styles.row}>
+            <Image source={url} style={{width:150, height:225}}/>
+            <View style={styles.details}>
+              <Text style={styles.title}>Collection: </Text><Text numberOfLines={2} style={styles.text}>{this.state.collection?this.state.collection.name:''}</Text>
+              <Text style={styles.title}>Genres: </Text><Text numberOfLines={2} style={styles.text}>{this.getNames(this.state.genres)}</Text>
+              <Text style={styles.title}>Companies: </Text><Text numberOfLines={2} style={styles.text}>{this.getNames(this.state.companies)}</Text>
+              <Text style={styles.title}>Countries: </Text><Text numberOfLines={2} style={styles.text}>{this.getNames(this.state.countries)}</Text>
+              <Text style={styles.title}>Status: </Text><Text style={styles.text}>{this.state.status}</Text>
+              <Text style={styles.title}>Vote average: </Text><Text style={styles.text}>{this.state.vote_average}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.column}>
+              <Text style={styles.title}>Homepage: </Text>
+              <Text style={styles.overview}>{this.state.homepage}</Text>
+              <Text style={styles.title}>{this.state.videos&&this.state.videos.length>0?this.state.videos[0].type:'Trailer'}: </Text>
+              <Text style={styles.overview}>{this.state.videos&&this.state.videos.length>0?'https://www.youtube.com/watch?v='+this.state.videos[0].key:''}</Text>
+              <Text style={styles.title}>Overview: </Text>
+              <Text style={styles.overview} numberOfLines={10}>{params.overview}</Text>
+            </View>
+          </View>
+      </ScrollView>
+
+    );
+  }
+}
+
+//--------------------End Movie Details----------------------------------------
+
+
+//-----------------Paging Component-------------------------------------
+class Paging extends React.Component{
+  constructor(props){
+    super(props);
+    this.moveBackward=this.moveBackward.bind(this);
+    this.moveForward=this.moveForward.bind(this);
+  }
+
+  moveBackward=(page)=>{
+    var p = Number.parseInt(page,10);
+    if(p > 1){
+        this.props.moveBackward(p-1);
+        console.log('Current Page: '+p);
+    }
+  }
+
+  moveForward=(page)=>{
+    var p = Number.parseInt(page,10);
+    var total = Number.parseInt(this.props.totalPages,10);
+    if(p < total){
+      this.props.moveForward(p+1);
+      console.log('Current Page: '+p+'/'+total);
+    }
+  }
+
+  render(){
+    return(
+      <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', margin:5, backgroundColor:'steelblue'}}>
+        {/* move backward button */}
+        <View style={{borderRadius:40}}>
+          <TouchableOpacity onPress={()=>this.moveBackward(this.props.page)}>
+            <View>
+              <Image source={require('./img/back-arrow.png')} style={{width:40, height:40}}></Image>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* text display current page/totalpage */}
+        <Text style={{color:'#ffffff', fontWeight:'bold'}}>Page: {this.props.page}/{this.props.totalPages}</Text>
+
+        {/* move fordward button */}
+        <View style={{borderRadius:40}}>
+          <TouchableOpacity onPress={()=>this.moveForward(this.props.page)}>
+            <View>
+              <Image source={require('./img/forward-arrow.png')} style={{width:40, height:40}}></Image>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+}
+//--------------------End Paging Component--------------------------------
+
 
 // Tab Navigator - tab screen contain Home and Movies tabs
 const TabScreen = TabNavigator({
@@ -180,6 +381,7 @@ const TabScreen = TabNavigator({
 const NavigatingScreen = StackNavigator({
   Login:{screen:Login},
   Tabs:{screen:TabScreen},
+  MovieDetails:{screen:MovieDetails}
 });
 
 
@@ -197,6 +399,11 @@ const styles=StyleSheet.create({
   row:{
     flexDirection:'row',
     marginTop:10,
+    left:5,
+  },
+  column:{
+    flexDirection:'column',
+    margin:5,
   },
   caption:{
     alignItems:'center',
@@ -228,12 +435,10 @@ const styles=StyleSheet.create({
     margin:10,
   },
 
-  text: {
-    padding: 0,
-    margin:0,
-    fontSize: 12,
-    height: 20,
-    color:'#ffffff',
+  details:{
+    flexDirection:'column',
+    marginLeft:5,
+    top:-10,
   },
 
   title: {
@@ -245,8 +450,23 @@ const styles=StyleSheet.create({
     color:'#ffffff',
   },
 
-  overview: {
+  subTitle: {
     padding: 0,
+    margin:0,
+    fontSize: 12,
+    height: 20,
+    color:'#ffffff',
+    opacity:0.5
+  },
+
+  text:{
+    color:'#ffffff',
+    fontSize:12,
+    width:200,
+  },
+
+  overview: {
+    paddingLeft: 5,
     marginBottom:5,
     fontSize: 12,
     color:'#ffffff',
