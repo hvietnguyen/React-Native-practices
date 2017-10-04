@@ -304,7 +304,7 @@ class MovieDetails extends React.Component{
               <Text style={styles.title}>{this.state.videos&&this.state.videos.length>0?this.state.videos[0].type:'Trailer'}: </Text>
               <Text style={styles.overview}>{this.state.videos&&this.state.videos.length>0?'https://www.youtube.com/watch?v='+this.state.videos[0].key:''}</Text>
               <Text style={styles.title}>Overview: </Text>
-              <Text style={styles.overview} numberOfLines={10}>{params.overview}</Text>
+              <Text style={styles.overview} numberOfLines={15}>{params.overview}</Text>
             </View>
           </View>
       </ScrollView>
@@ -379,10 +379,14 @@ const TabScreen = TabNavigator({
 
 // Stack Navigator - contain a login screen and a tab screen
 const NavigatingScreen = StackNavigator({
-  Login:{screen:Login},
-  Tabs:{screen:TabScreen},
-  MovieDetails:{screen:MovieDetails}
-});
+    Login:{screen:Login},
+    Tabs:{screen:TabScreen},
+    MovieDetails:{screen:MovieDetails}
+  },
+  {
+    headerMode:'none' // Hide header
+  }
+);
 
 
 // Styles
@@ -398,9 +402,12 @@ const styles=StyleSheet.create({
   },
   row:{
     flexDirection:'row',
+    justifyContent:'center',
+    alignItems:'stretch',
     marginTop:10,
     left:5,
   },
+
   column:{
     flexDirection:'column',
     margin:5,
@@ -438,7 +445,6 @@ const styles=StyleSheet.create({
   details:{
     flexDirection:'column',
     marginLeft:5,
-    top:-10,
   },
 
   title: {
